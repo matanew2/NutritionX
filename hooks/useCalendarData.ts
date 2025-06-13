@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getDailyData, getDateRange, calculateDailyTotals } from '@/utils/storage';
+import { database } from '@/utils/database';
+import { DailyData, FoodEntry, UserProfile } from '@/utils/database';
 
 interface CalendarData {
   date: string;
-  foods: any[];
+  foods: FoodEntry[];
   waterGlasses: number;
   weight?: number;
   notes?: string;
@@ -28,10 +29,14 @@ export const useCalendarData = (selectedDate: string) => {
       const dates = getDateRange(30);
       const data = await Promise.all(
         dates.map(async (date) => {
-          const dailyData = await getDailyData(date);
+          const [dailyData, foodEntries] = await Promise.all([
+            database.getDailyData(date),
+            database.getFoodEntries(date)
+          ]);
+
           return {
             date,
-            foods: dailyData?.foods || [],
+            foods: foodEntries,
             waterGlasses: dailyData?.waterGlasses || 0,
             weight: dailyData?.weight,
             notes: dailyData?.notes,
@@ -49,11 +54,13 @@ export const useCalendarData = (selectedDate: string) => {
         },
       };
 
+      // Get user profile for calorie target
+      const userProfile = await database.getUserProfile();
+      const targetCalories = userProfile?.dailyCalorieTarget || 2000;
+
       data.forEach((day) => {
         if (day.foods.length > 0) {
           const totals = calculateDailyTotals(day.foods);
-          const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-          const targetCalories = userProfile.dailyCalorieTarget || 2000;
 
           // Determine dot color based on calorie goal achievement
           let dotColor = '#EF4444'; // Red for missed goal
@@ -93,4 +100,29 @@ export const useCalendarData = (selectedDate: string) => {
     getDayData,
     refreshData: loadCalendarData,
   };
+};
+
+const getDateRange = (days: number): string[] => {
+  const dates: string[] = [];
+  const today = new Date();
+  
+  for (let i = 0; i < days; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
+    dates.push(date.toISOString().split('T')[0]);
+  }
+  
+  return dates;
+};
+
+const calculateDailyTotals = (foods: FoodEntry[]) => {
+  return foods.reduce(
+    (totals, food) => ({
+      calories: totals.calories + food.calories,
+      protein: totals.protein + food.protein,
+      carbs: totals.carbs + food.carbs,
+      fat: totals.fat + food.fat,
+    }),
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  );
 }; 

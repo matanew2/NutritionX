@@ -3,7 +3,7 @@ import { View, Text, TextInput, StyleSheet, useColorScheme, Dimensions } from 'r
 import { VictoryLine, VictoryChart, VictoryTheme, VictoryAxis } from 'victory-native';
 import { TrendingDown } from 'lucide-react-native';
 import { useColorScheme as useColorSchemeHook } from '@/hooks/useColorScheme';
-import { getDailyData, saveDailyData } from '@/utils/storage';
+import { database } from '@/utils/database';
 
 const { width } = Dimensions.get('window');
 
@@ -21,15 +21,16 @@ export const WeightTracker: React.FC<WeightTrackerProps> = ({ date, onDataChange
   }, [date]);
 
   const loadWeightData = async () => {
-    const data = await getDailyData(date);
+    const data = await database.getDailyData(date);
     setWeight(data?.weight?.toString() || '');
   };
 
   const handleWeightChange = async (text: string) => {
     setWeight(text);
-    const data = await getDailyData(date);
-    await saveDailyData(date, {
+    const data = await database.getDailyData(date);
+    await database.saveDailyData({
       ...data,
+      date,
       weight: parseFloat(text) || undefined,
     });
     onDataChange();

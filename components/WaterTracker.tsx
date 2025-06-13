@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Droplet } from 'lucide-react-native';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { getDailyData, saveDailyData, getUserProfile } from '@/utils/storage';
+import { database } from '@/utils/database';
 
 interface WaterTrackerProps {
   date: string;
@@ -12,7 +12,7 @@ interface WaterTrackerProps {
 export const WaterTracker: React.FC<WaterTrackerProps> = ({ date, onDataChange }) => {
   const { colors } = useColorScheme();
   const [glasses, setGlasses] = React.useState(0);
-  const [target, setTarget] = React.useState(8); // Default target of 8 glasses
+  const [target, setTarget] = React.useState(8);
 
   React.useEffect(() => {
     loadData();
@@ -20,8 +20,8 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({ date, onDataChange }
 
   const loadData = async () => {
     const [dailyData, userProfile] = await Promise.all([
-      getDailyData(date),
-      getUserProfile()
+      database.getDailyData(date),
+      database.getUserProfile()
     ]);
     
     setGlasses(dailyData?.waterGlasses || 0);
@@ -31,9 +31,10 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({ date, onDataChange }
   const handleAddGlass = async () => {
     const newGlasses = glasses + 1;
     setGlasses(newGlasses);
-    const data = await getDailyData(date);
-    await saveDailyData(date, {
+    const data = await database.getDailyData(date);
+    await database.saveDailyData({
       ...data,
+      date,
       waterGlasses: newGlasses,
     });
     onDataChange();
@@ -43,9 +44,10 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({ date, onDataChange }
     if (glasses > 0) {
       const newGlasses = glasses - 1;
       setGlasses(newGlasses);
-      const data = await getDailyData(date);
-      await saveDailyData(date, {
+      const data = await database.getDailyData(date);
+      await database.saveDailyData({
         ...data,
+        date,
         waterGlasses: newGlasses,
       });
       onDataChange();

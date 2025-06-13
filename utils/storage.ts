@@ -1,37 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-export interface UserProfile {
-  name: string;
-  age: number;
-  gender: string;
-  height: number;
-  weight: number;
-  activityLevel: string;
-  goal: string;
-  dailyCalorieTarget: number;
-  dailyProteinTarget: number;
-  dailyCarbsTarget: number;
-  dailyFatTarget: number;
-}
-
-export interface FoodEntry {
-  id: string;
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  timestamp: string;
-  image?: string;
-}
-
-export interface DailyData {
-  foods: any[];
-  waterGlasses: number;
-  weight?: number;
-  notes?: string;
-}
+import { database, UserProfile, FoodEntry, DailyData } from './database';
 
 export interface Achievement {
   id: string;
@@ -52,42 +19,23 @@ const STORAGE_KEYS = {
 
 // User Profile
 export const saveUserProfile = async (profile: UserProfile): Promise<void> => {
-  try {
-    await AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
-  } catch (error) {
-    console.error('Error saving user profile:', error);
-  }
+  await database.saveUserProfile(profile);
 };
 
 export const getUserProfile = async (): Promise<UserProfile | null> => {
-  try {
-    const profile = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
-    return profile ? JSON.parse(profile) : null;
-  } catch (error) {
-    console.error('Error getting user profile:', error);
-    return null;
-  }
+  return await database.getUserProfile();
 };
 
 // Daily Data
 export const saveDailyData = async (date: string, data: DailyData): Promise<void> => {
-  try {
-    const key = `${STORAGE_KEYS.DAILY_DATA}_${date}`;
-    await AsyncStorage.setItem(key, JSON.stringify(data));
-  } catch (error) {
-    console.error('Error saving daily data:', error);
-  }
+  await database.saveDailyData({
+    ...data,
+    date,
+  });
 };
 
 export const getDailyData = async (date: string): Promise<DailyData | null> => {
-  try {
-    const key = `${STORAGE_KEYS.DAILY_DATA}_${date}`;
-    const data = await AsyncStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
-  } catch (error) {
-    console.error('Error getting daily data:', error);
-    return null;
-  }
+  return await database.getDailyData(date);
 };
 
 // Food Entries
@@ -153,7 +101,7 @@ export const addWeightEntry = async (date: string, weight: number): Promise<void
 // Achievements
 export const saveAchievements = async (achievements: Achievement[]): Promise<void> => {
   try {
-    await AsyncStorage.setItem(STORAGE_KEYS.ACHIEVEMENTS, JSON.stringify(achievements));
+    await database.saveAchievements(achievements);
   } catch (error) {
     console.error('Error saving achievements:', error);
   }
@@ -161,8 +109,7 @@ export const saveAchievements = async (achievements: Achievement[]): Promise<voi
 
 export const getAchievements = async (): Promise<Achievement[]> => {
   try {
-    const data = await AsyncStorage.getItem(STORAGE_KEYS.ACHIEVEMENTS);
-    return data ? JSON.parse(data) : getDefaultAchievements();
+    return await database.getAchievements();
   } catch (error) {
     console.error('Error getting achievements:', error);
     return getDefaultAchievements();
@@ -175,8 +122,8 @@ export const updateStreak = async (): Promise<number> => {
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
-    const streakData = await AsyncStorage.getItem(STORAGE_KEYS.STREAK_DATA);
-    const currentStreak = streakData ? JSON.parse(streakData) : { count: 0, lastDate: null };
+    const streakData = await database.getStreakData();
+    const currentStreak = streakData ? streakData : { count: 0, lastDate: null };
     
     const todayData = await getDailyData(today);
     const hasLoggedToday = todayData && todayData.foods.length > 0;
@@ -190,7 +137,7 @@ export const updateStreak = async (): Promise<number> => {
       currentStreak.lastDate = today;
     }
     
-    await AsyncStorage.setItem(STORAGE_KEYS.STREAK_DATA, JSON.stringify(currentStreak));
+    await database.saveStreakData(currentStreak);
     return currentStreak.count;
   } catch (error) {
     console.error('Error updating streak:', error);
@@ -212,13 +159,13 @@ export const getDateRange = (days: number): string[] => {
   return dates;
 };
 
-export const calculateDailyTotals = (foods: any[]) => {
+export const calculateDailyTotals = (foods: FoodEntry[]) => {
   return foods.reduce(
     (totals, food) => ({
-      calories: totals.calories + (food.calories || 0),
-      protein: totals.protein + (food.protein || 0),
-      carbs: totals.carbs + (food.carbs || 0),
-      fat: totals.fat + (food.fat || 0),
+      calories: totals.calories + food.calories,
+      protein: totals.protein + food.protein,
+      carbs: totals.carbs + food.carbs,
+      fat: totals.fat + food.fat,
     }),
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
@@ -261,11 +208,5 @@ const getDefaultAchievements = (): Achievement[] => [
 
 // Clear all data (for testing)
 export const clearAllData = async (): Promise<void> => {
-  try {
-    const keys = await AsyncStorage.getAllKeys();
-    const dataKeys = keys.filter(key => key.startsWith(STORAGE_KEYS.DAILY_DATA));
-    await AsyncStorage.multiRemove([...dataKeys, STORAGE_KEYS.USER_PROFILE]);
-  } catch (error) {
-    console.error('Error clearing data:', error);
-  }
+  await database.clearAllData();
 };
