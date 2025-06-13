@@ -21,42 +21,9 @@ export function DayMealSummary({ date }: DayMealSummaryProps) {
 
   // Mock data for the selected date
   const dayData = {
-    totalCalories: 1450,
-    targetCalories: 2200,
-    meals: [
-      {
-        id: '1',
-        type: 'Breakfast',
-        name: 'Oatmeal with Berries',
-        calories: 320,
-        time: '8:00 AM',
-        image: 'https://images.pexels.com/photos/1092730/pexels-photo-1092730.jpeg?auto=compress&cs=tinysrgb&w=400',
-      },
-      {
-        id: '2',
-        type: 'Lunch',
-        name: 'Quinoa Buddha Bowl',
-        calories: 480,
-        time: '12:30 PM',
-        image: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=400',
-      },
-      {
-        id: '3',
-        type: 'Snack',
-        name: 'Mixed Nuts',
-        calories: 150,
-        time: '3:00 PM',
-        image: 'https://images.pexels.com/photos/1295572/pexels-photo-1295572.jpeg?auto=compress&cs=tinysrgb&w=400',
-      },
-      {
-        id: '4',
-        type: 'Dinner',
-        name: 'Grilled Salmon',
-        calories: 500,
-        time: '7:00 PM',
-        image: 'https://images.pexels.com/photos/1516415/pexels-photo-1516415.jpeg?auto=compress&cs=tinysrgb&w=400',
-      },
-    ],
+    totalCalories: 0,
+    targetCalories: 0,
+    meals: [],
   };
 
   const remainingCalories = dayData.targetCalories - dayData.totalCalories;

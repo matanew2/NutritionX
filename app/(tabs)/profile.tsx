@@ -41,12 +41,13 @@ export default function ProfileScreen() {
   };
 
   const userStats = {
-    currentWeight: 145,
-    goalWeight: 135,
-    height: '5\'6"',
-    age: 28,
-    activityLevel: 'Moderately Active',
-    goal: 'Weight Loss',
+    name: "",
+    currentWeight: 0,
+    goalWeight: 0,
+    height: '0',
+    age: 0,
+    activityLevel: '0',
+    goal: '0',
   };
 
   const menuItems = [
@@ -121,21 +122,6 @@ export default function ProfileScreen() {
         {/* Profile Header */}
         <ProfileHeader userStats={userStats} colors={colors} />
 
-        {/* Current Goals */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Current Goals
-          </Text>
-          <GoalCard
-            title="Weight Goal"
-            current={userStats.currentWeight}
-            target={userStats.goalWeight}
-            unit="lbs"
-            progress={(userStats.currentWeight - userStats.goalWeight) / (userStats.currentWeight - userStats.goalWeight + 10)}
-            colors={colors}
-          />
-        </View>
-
         {/* Quick Stats */}
         <View style={[styles.statsCard, { backgroundColor: colors.surface }]}>
           <Text style={[styles.statsTitle, { color: colors.text }]}>
@@ -160,7 +146,7 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: colors.text }]}>
-                BMI 22.1
+                BMI 0
               </Text>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
                 Body Mass Index
@@ -168,7 +154,7 @@ export default function ProfileScreen() {
             </View>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: colors.text }]}>
-                1,850
+                0
               </Text>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
                 BMR (kcal)

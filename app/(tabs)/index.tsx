@@ -41,11 +41,11 @@ export default function Dashboard() {
     fat: userProfile.fatTarget,
     water: userProfile.waterTarget,
   } : {
-    calories: 2000,
-    protein: 120,
-    carbs: 250,
-    fat: 67,
-    water: 8,
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+    water: 0,
   };
 
   const macroData = {

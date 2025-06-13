@@ -4,6 +4,7 @@ import { Edit } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 interface UserStats {
+  name: String;
   currentWeight: number;
   goalWeight: number;
   height: string;
@@ -41,37 +42,10 @@ export function ProfileHeader({ userStats, colors }: ProfileHeaderProps) {
         
         <View style={styles.userInfo}>
           <Text style={[styles.userName, { color: colors.text }]}>
-            Sarah Johnson
+            {userStats.name}
           </Text>
           <Text style={[styles.userGoal, { color: colors.textSecondary }]}>
             {userStats.goal} • {userStats.activityLevel}
-          </Text>
-        </View>
-      </View>
-      
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>
-            {userStats.currentWeight}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Current (lbs)
-          </Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>
-            {userStats.goalWeight}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Goal (lbs)
-          </Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>
-            {userStats.height}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-            Height
           </Text>
         </View>
       </View>

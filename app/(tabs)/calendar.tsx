@@ -5,19 +5,16 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
-import { router, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { DayMealSummary } from '@/components/DayMealSummary';
 import { NutrientChart } from '@/components/NutrientChart';
 import { useCalendarData } from '@/hooks/useCalendarData';
 import { MealSummary } from '@/components/MealSummary';
 import { WaterTracker } from '@/components/WaterTracker';
-import { WeightTracker } from '@/components/WeightTracker';
-import { NotesSection } from '@/components/NotesSection';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { database } from '@/utils/database';
 import { format } from 'date-fns';
@@ -28,7 +25,7 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const { data, loading, error } = useCalendarData(selectedDate);
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [_refreshKey, setRefreshKey] = useState(0);
 
   const handleRefresh = useCallback(async () => {
     setRefreshKey(prev => prev + 1);
@@ -80,10 +77,6 @@ export default function CalendarScreen() {
     setSelectedDate(day.dateString);
   };
 
-  const handleAddMeal = () => {
-    router.push('/(tabs)/chat');
-  };
-
   const calendarTheme = {
     backgroundColor: colors.surface,
     calendarBackground: colors.surface,
@@ -130,12 +123,6 @@ export default function CalendarScreen() {
           <Text style={[styles.title, { color: colors.text }]}>
             Food Calendar
           </Text>
-          <TouchableOpacity
-            style={[styles.addButton, { backgroundColor: colors.primary }]}
-            onPress={handleAddMeal}
-          >
-            <Plus size={20} color="white" />
-          </TouchableOpacity>
         </View>
 
         {/* Calendar */}
@@ -178,38 +165,9 @@ export default function CalendarScreen() {
           <NutrientChart />
         </View>
 
-        {/* Calendar Legend */}
-        <View style={[styles.legend, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.legendTitle, { color: colors.text }]}>
-            Legend
-          </Text>
-          <View style={styles.legendItems}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
-              <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-                Goal achieved
-              </Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#F59E0B' }]} />
-              <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-                Partial goal
-              </Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
-              <Text style={[styles.legendText, { color: colors.textSecondary }]}>
-                Goal missed
-              </Text>
-            </View>
-          </View>
-        </View>
-
         <View style={styles.content}>
-          <MealSummary date={selectedDate} onDataChange={handleRefresh} />
           <WaterTracker date={selectedDate} onDataChange={handleRefresh} />
-          <WeightTracker date={selectedDate} onDataChange={handleRefresh} />
-          <NotesSection date={selectedDate} onDataChange={handleRefresh} />
+          <MealSummary date={selectedDate} onDataChange={handleRefresh} />
         </View>
       </ScrollView>
     </SafeAreaView>

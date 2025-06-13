@@ -18,13 +18,13 @@ export function NutrientChart() {
   };
 
   const chartData = [
-    { x: 1, y: 1800, label: 'Mon' },
-    { x: 2, y: 2100, label: 'Tue' },
-    { x: 3, y: 1950, label: 'Wed' },
-    { x: 4, y: 2200, label: 'Thu' },
-    { x: 5, y: 1850, label: 'Fri' },
-    { x: 6, y: 2000, label: 'Sat' },
-    { x: 7, y: 1900, label: 'Sun' },
+    { x: 1, y: 0, label: 'Mon' },
+    { x: 2, y: 0, label: 'Tue' },
+    { x: 3, y: 0, label: 'Wed' },
+    { x: 4, y: 0, label: 'Thu' },
+    { x: 5, y: 0, label: 'Fri' },
+    { x: 6, y: 0, label: 'Sat' },
+    { x: 7, y: 0, label: 'Sun' },
   ];
 
   return (
