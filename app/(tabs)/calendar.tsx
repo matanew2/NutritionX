@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, useRouter } from 'expo-router';
 import { DayMealSummary } from '@/components/DayMealSummary';
 import { NutrientChart } from '@/components/NutrientChart';
 import { useCalendarData } from '@/hooks/useCalendarData';
@@ -19,17 +19,70 @@ import { WaterTracker } from '@/components/WaterTracker';
 import { WeightTracker } from '@/components/WeightTracker';
 import { NotesSection } from '@/components/NotesSection';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { database } from '@/utils/database';
+import { format } from 'date-fns';
 
 export default function CalendarScreen() {
   const { colors } = useColorScheme();
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const { markedDates, loading, getDayData, refreshData } = useCalendarData(selectedDate);
-  
-  const handleDayPress = (day: { dateString: string }) => {
+  const router = useRouter();
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const { data, loading, error } = useCalendarData(selectedDate);
+  const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshKey(prev => prev + 1);
+    return Promise.resolve();
+  }, []);
+
+  // Update marked dates when data changes
+  useEffect(() => {
+    const updateMarkedDates = async () => {
+      try {
+        const userProfile = await database.getUserProfile();
+        const targetCalories = userProfile?.dailyCalorieTarget || 2000;
+        
+        const marked: Record<string, any> = {
+          [selectedDate]: {
+            selected: true,
+            selectedColor: '#4F46E5',
+          },
+        };
+
+        if (data?.foods && data.foods.length > 0) {
+          const totalCalories = data.foods.reduce((sum, food) => sum + food.calories, 0);
+          
+          // Determine dot color based on calorie goal achievement
+          let dotColor = '#EF4444'; // Red for missed goal
+          if (totalCalories >= targetCalories * 0.9) {
+            dotColor = '#10B981'; // Green for achieved goal
+          } else if (totalCalories >= targetCalories * 0.7) {
+            dotColor = '#F59E0B'; // Yellow for partial goal
+          }
+
+          marked[selectedDate] = {
+            ...marked[selectedDate],
+            marked: true,
+            dotColor,
+          };
+        }
+
+        setMarkedDates(marked);
+      } catch (err) {
+        console.error('Error updating marked dates:', err);
+      }
+    };
+
+    updateMarkedDates();
+  }, [data, selectedDate]);
+
+  const handleDayPress = (day: any) => {
     setSelectedDate(day.dateString);
   };
 
-  const dayData = getDayData(selectedDate);
+  const handleAddMeal = () => {
+    router.push('/(tabs)/chat');
+  };
 
   const calendarTheme = {
     backgroundColor: colors.surface,
@@ -53,6 +106,22 @@ export default function CalendarScreen() {
     textDayHeaderFontSize: 14,
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -63,7 +132,7 @@ export default function CalendarScreen() {
           </Text>
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: colors.primary }]}
-            onPress={() => router.push('/add-meal')}
+            onPress={handleAddMeal}
           >
             <Plus size={20} color="white" />
           </TouchableOpacity>
@@ -136,16 +205,12 @@ export default function CalendarScreen() {
           </View>
         </View>
 
-        {loading ? (
-          <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
-        ) : (
-          <View style={styles.content}>
-            <MealSummary date={selectedDate} onDataChange={refreshData} />
-            <WaterTracker date={selectedDate} onDataChange={refreshData} />
-            <WeightTracker date={selectedDate} onDataChange={refreshData} />
-            <NotesSection date={selectedDate} onDataChange={refreshData} />
-          </View>
-        )}
+        <View style={styles.content}>
+          <MealSummary date={selectedDate} onDataChange={handleRefresh} />
+          <WaterTracker date={selectedDate} onDataChange={handleRefresh} />
+          <WeightTracker date={selectedDate} onDataChange={handleRefresh} />
+          <NotesSection date={selectedDate} onDataChange={handleRefresh} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -200,27 +265,39 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   legendItems: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    gap: 8,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   legendDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 6,
   },
   legendText: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: 'Inter-Regular',
   },
-  loader: {
-    marginTop: 20,
-  },
   content: {
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: '#EF4444',
+    textAlign: 'center',
   },
 });

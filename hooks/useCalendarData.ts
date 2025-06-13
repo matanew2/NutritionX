@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { getDailyData, getFoodEntries, getUserProfile } from '@/utils/database';
-import { DailyData, FoodEntry, UserProfile } from '@/utils/database';
+import { database, DailyData, FoodEntry, UserProfile } from '@/utils/database';
 
 interface CalendarData {
   date: string;
-  foods: FoodEntry[];
   waterGlasses: number;
   weight?: number;
   notes?: string;
+  foods: FoodEntry[];
+  hasData: boolean;
 }
 
 interface MarkedDate {
@@ -17,89 +17,55 @@ interface MarkedDate {
   dotColor?: string;
 }
 
-export const useCalendarData = (selectedDate: string) => {
-  const [calendarData, setCalendarData] = useState<CalendarData[]>([]);
-  const [markedDates, setMarkedDates] = useState<Record<string, MarkedDate>>({});
+export const useCalendarData = (date: string) => {
+  const [data, setData] = useState<CalendarData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadCalendarData = async () => {
-    try {
-      setLoading(true);
-      // Get data for the last 30 days
-      const dates = getDateRange(30);
-      const data = await Promise.all(
-        dates.map(async (date) => {
-          const [dailyData, foodEntries] = await Promise.all([
-            getDailyData(date),
-            getFoodEntries(date)
-          ]);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-          return {
+        // Get daily data
+        const dailyData = await database.getDailyData(date);
+        
+        // Get food entries
+        const foodEntries = await database.getFoodEntries(date);
+        
+        // Get user profile for calorie calculations
+        const userProfile = await database.getUserProfile();
+
+        if (dailyData || foodEntries.length > 0) {
+          setData({
             date,
-            foods: foodEntries,
             waterGlasses: dailyData?.waterGlasses || 0,
             weight: dailyData?.weight,
             notes: dailyData?.notes,
-          };
-        })
-      );
-
-      setCalendarData(data);
-
-      // Create marked dates for the calendar
-      const marked: Record<string, MarkedDate> = {
-        [selectedDate]: {
-          selected: true,
-          selectedColor: '#4F46E5',
-        },
-      };
-
-      // Get user profile for calorie target
-      const userProfile = await getUserProfile();
-      const targetCalories = userProfile?.dailyCalorieTarget || 2000;
-
-      data.forEach((day) => {
-        if (day.foods.length > 0) {
-          const totals = calculateDailyTotals(day.foods);
-
-          // Determine dot color based on calorie goal achievement
-          let dotColor = '#EF4444'; // Red for missed goal
-          if (totals.calories >= targetCalories * 0.9) {
-            dotColor = '#10B981'; // Green for achieved goal
-          } else if (totals.calories >= targetCalories * 0.7) {
-            dotColor = '#F59E0B'; // Yellow for partial goal
-          }
-
-          marked[day.date] = {
-            marked: true,
-            dotColor,
-          };
+            foods: foodEntries,
+            hasData: true
+          });
+        } else {
+          setData({
+            date,
+            waterGlasses: 0,
+            foods: [],
+            hasData: false
+          });
         }
-      });
+      } catch (err) {
+        console.error('Error loading calendar data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load calendar data');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      setMarkedDates(marked);
-    } catch (error) {
-      console.error('Error loading calendar data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadData();
+  }, [date]);
 
-  useEffect(() => {
-    loadCalendarData();
-  }, [selectedDate]);
-
-  const getDayData = (date: string) => {
-    return calendarData.find(day => day.date === date);
-  };
-
-  return {
-    calendarData,
-    markedDates,
-    loading,
-    getDayData,
-    refreshData: loadCalendarData,
-  };
+  return { data, loading, error };
 };
 
 const getDateRange = (days: number): string[] => {
