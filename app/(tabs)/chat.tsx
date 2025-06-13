@@ -346,17 +346,15 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    width: '100%',
     borderTopWidth: 1,
+    paddingVertical: 12,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    width: '100%',
     paddingHorizontal: 12,
-    paddingVertical: 8,
   },
   emojiButton: {
     width: 40,
@@ -375,6 +373,7 @@ const styles = StyleSheet.create({
     maxHeight: 100,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
+    width: '100%',
   },
   sendButton: {
     width: 40,
