@@ -9,10 +9,9 @@ import {
   useColorScheme,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Send, Bot, User, Smile } from 'lucide-react-native';
+import { Send, Bot, Smile } from 'lucide-react-native';
 import { ChatMessage } from '@/components/ChatMessage';
 import { SuggestedQuestions } from '@/components/SuggestedQuestions';
 
@@ -21,16 +20,6 @@ interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
-}
-
-interface ChatMessageProps {
-  message: Message;
-  colors: {
-    primary: string;
-    surface: string;
-    text: string;
-    textSecondary: string;
-  };
 }
 
 interface Colors {
@@ -196,6 +185,7 @@ export default function ChatScreen() {
         >
           {messages.map((message) => (
             <ChatMessage
+              key={message.id}
               message={message}
               colors={{
                 primary: colors.primary,

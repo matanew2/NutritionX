@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Heart, ArrowRight } from 'lucide-react-native';
+import { ArrowRight } from 'lucide-react-native';
 import { saveUserProfile, UserProfile } from '@/utils/storage';
 
 export default function OnboardingScreen() {
@@ -84,7 +84,7 @@ export default function OnboardingScreen() {
       content: (
         <View style={styles.stepContent}>
           <Text style={[styles.question, { color: colors.text }]}>
-            What's your name?
+            What&apos;s your name?
           </Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}

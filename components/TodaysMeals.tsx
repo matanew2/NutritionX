@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useColorScheme, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
 import { Clock, Trash2 } from 'lucide-react-native';
 import { FoodEntry } from '@/utils/storage';
 
@@ -40,7 +40,7 @@ export function TodaysMeals({ meals, onRemoveMeal }: TodaysMealsProps) {
     return (
       <View style={styles.container}>
         <Text style={[styles.title, { color: colors.text }]}>
-          Today's Meals 🍽️
+          Today&apos;s Meals 🍽️
         </Text>
         <View style={[styles.emptyState, { backgroundColor: colors.surface }]}>
           <Text style={styles.emptyEmoji}>🍽️</Text>
@@ -58,7 +58,7 @@ export function TodaysMeals({ meals, onRemoveMeal }: TodaysMealsProps) {
   return (
     <View style={styles.container}>
       <Text style={[styles.title, { color: colors.text }]}>
-        Today's Meals 🍽️
+        Today&apos;s Meals 🍽️
       </Text>
       
       <View style={[styles.mealsList, { backgroundColor: colors.surface }]}>

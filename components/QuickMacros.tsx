@@ -50,7 +50,7 @@ export function QuickMacros({ macros }: QuickMacrosProps) {
   return (
     <View style={styles.container}>
       <Text style={[styles.title, { color: colors.text }]}>
-        Today's Fuel ⛽
+        Today&apos;s Fuel ⛽
       </Text>
       
       <View style={styles.macroGrid}>

@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  User,
   Settings,
   Target,
   Bell,
@@ -23,7 +22,6 @@ import {
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { ProfileHeader } from '@/components/ProfileHeader';
-import { GoalCard } from '@/components/GoalCard';
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();

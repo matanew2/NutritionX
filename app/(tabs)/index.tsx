@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   View,
   StyleSheet,
@@ -24,7 +24,6 @@ export default function Dashboard() {
     addFood,
     updateWater,
     getDailyTotals,
-    refreshData,
   } = useHealthData();
 
   const colors = {

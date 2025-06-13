@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "start": "npx expo start",
     "dev": "EXPO_NO_TELEMETRY=1 npx expo start",
     "build:web": "npx expo export --platform web",
-    "lint": "npx expo lint"
+    "lint": "npx expo lint --fix"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.2.3",
@@ -53,6 +54,8 @@
     "@types/react": "~19.0.10",
     "@types/react-native": "^0.73.0",
     "babel-plugin-module-resolver": "^5.0.2",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~9.2.0"
   }
 }

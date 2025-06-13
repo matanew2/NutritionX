@@ -4,12 +4,10 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { DayMealSummary } from '@/components/DayMealSummary';
 import { NutrientChart } from '@/components/NutrientChart';
 import { useCalendarData } from '@/hooks/useCalendarData';
@@ -21,11 +19,10 @@ import { format } from 'date-fns';
 
 export default function CalendarScreen() {
   const { colors } = useColorScheme();
-  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const { data, loading, error } = useCalendarData(selectedDate);
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
-  const [_refreshKey, setRefreshKey] = useState(0);
+  const [, setRefreshKey] = useState(0);
 
   const handleRefresh = useCallback(async () => {
     setRefreshKey(prev => prev + 1);

@@ -14,11 +14,7 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({ date, onDataChange }
   const [glasses, setGlasses] = React.useState(0);
   const [target, setTarget] = React.useState(8);
 
-  React.useEffect(() => {
-    loadData();
-  }, [date]);
-
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     const [dailyData, userProfile] = await Promise.all([
       database.getDailyData(date),
       database.getUserProfile()
@@ -26,7 +22,13 @@ export const WaterTracker: React.FC<WaterTrackerProps> = ({ date, onDataChange }
     
     setGlasses(dailyData?.waterGlasses || 0);
     setTarget(userProfile?.waterTarget || 8);
-  };
+  }, [date]);
+
+  React.useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+
 
   const handleAddGlass = async () => {
     const newGlasses = glasses + 1;

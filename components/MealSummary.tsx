@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { getDailyData, calculateDailyTotals } from '@/utils/storage';
+import { calculateDailyTotals } from '@/utils/storage';
 import { database } from '@/utils/database';
 
 interface MealSummaryProps {
@@ -13,14 +13,16 @@ export const MealSummary: React.FC<MealSummaryProps> = ({ date, onDataChange }) 
   const { colors } = useColorScheme();
   const [foods, setFoods] = React.useState<any[]>([]);
 
-  React.useEffect(() => {
-    loadData();
-  }, [date]);
-
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     const entries = await database.getFoodEntries(date);
     setFoods(entries);
-  };
+  }, [date]);
+
+  React.useEffect(() => {
+    loadData();
+  }, [date, loadData]);
+
+
 
   if (foods.length === 0) {
     return null;

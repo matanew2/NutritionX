@@ -4,7 +4,7 @@ import { Edit } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 interface UserStats {
-  name: String;
+  name: string;
   currentWeight: number;
   goalWeight: number;
   height: string;
