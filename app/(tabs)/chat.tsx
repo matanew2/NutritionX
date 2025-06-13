@@ -22,6 +22,28 @@ interface Message {
   timestamp: Date;
 }
 
+interface ChatMessageProps {
+  message: Message;
+  colors: {
+    primary: string;
+    surface: string;
+    text: string;
+    textSecondary: string;
+  };
+}
+
+interface Colors {
+  background: string;
+  surface: string;
+  text: string;
+  textSecondary: string;
+  primary: string;
+  border: string;
+  inputBackground: string;
+}
+
+const GROQ_API_KEY = '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';
+
 export default function ChatScreen() {
   const colorScheme = useColorScheme();
   const [messages, setMessages] = useState<Message[]>([
@@ -36,7 +58,7 @@ export default function ChatScreen() {
   const [isTyping, setIsTyping] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const colors = {
+  const colors: Colors = {
     background: colorScheme === 'dark' ? '#000000' : '#FFFFFF',
     surface: colorScheme === 'dark' ? '#1F1F1F' : '#F8F9FA',
     text: colorScheme === 'dark' ? '#FFFFFF' : '#000000',
@@ -44,6 +66,43 @@ export default function ChatScreen() {
     primary: '#4F46E5',
     border: colorScheme === 'dark' ? '#374151' : '#E5E7EB',
     inputBackground: colorScheme === 'dark' ? '#374151' : '#F3F4F6',
+  };
+
+  const getAIResponse = async (userInput: string): Promise<string> => {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'compound-beta',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful AI nutrition assistant. You provide accurate, evidence-based advice about nutrition, meal planning, and health goals. Keep responses concise and practical.'
+            },
+            ...messages.map((msg: Message) => ({
+              role: msg.isUser ? 'user' : 'assistant',
+              content: msg.text
+            })),
+            {
+              role: 'user',
+              content: userInput
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 500,
+        }),
+      });
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      return "I apologize, but I'm having trouble connecting right now. Please try again in a moment.";
+    }
   };
 
   const sendMessage = async () => {
@@ -56,48 +115,31 @@ export default function ChatScreen() {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev: Message[]) => [...prev, userMessage]);
     setInputText('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = generateAIResponse(userMessage.text);
+    try {
+      const aiResponse = await getAIResponse(userMessage.text);
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: aiResponse,
         isUser: false,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, aiMessage]);
+      setMessages((prev: Message[]) => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Error in sendMessage:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "I apologize, but I'm having trouble connecting right now. Please try again in a moment.",
+        isUser: false,
+        timestamp: new Date(),
+      };
+      setMessages((prev: Message[]) => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
-  };
-
-  const generateAIResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase();
-    
-    if (input.includes('calorie') || input.includes('calories')) {
-      return "Based on your profile, your daily caloric needs are around 2,200 calories. This includes your basal metabolic rate plus your activity level. Would you like me to break down how many calories you should aim for from each macronutrient?";
     }
-    
-    if (input.includes('protein')) {
-      return "For your goals, I recommend 1.2-1.6g of protein per kg of body weight. Good sources include lean meats, fish, eggs, legumes, and dairy. Protein helps with muscle maintenance and keeps you feeling full longer.";
-    }
-    
-    if (input.includes('meal plan') || input.includes('what to eat')) {
-      return "I'd be happy to suggest a meal plan! Based on your preferences, here's what I recommend for today:\n\n🍳 Breakfast: Greek yogurt with berries and granola\n🥗 Lunch: Grilled chicken salad with mixed vegetables\n🍽️ Dinner: Baked salmon with quinoa and steamed broccoli\n🍎 Snacks: Apple with almond butter\n\nWould you like me to adjust this based on any dietary restrictions?";
-    }
-    
-    if (input.includes('weight loss') || input.includes('lose weight')) {
-      return "For healthy weight loss, aim for a moderate caloric deficit of 300-500 calories per day. Focus on whole foods, increase your protein intake, and stay hydrated. Remember, sustainable weight loss is typically 1-2 pounds per week.";
-    }
-    
-    if (input.includes('water') || input.includes('hydration')) {
-      return "Great question! I recommend drinking at least 8 glasses (64oz) of water daily, but this can vary based on your activity level and climate. Proper hydration supports metabolism, helps control hunger, and improves energy levels.";
-    }
-    
-    return "That's a great question! I'm here to help with nutrition advice, meal planning, and dietary guidance. Could you provide more specific details about what you'd like to know? I can help with calorie counting, macro breakdowns, meal suggestions, or any other nutrition-related topics.";
   };
 
   const handleSuggestedQuestion = (question: string) => {
@@ -133,16 +175,20 @@ export default function ChatScreen() {
 
         {/* Messages */}
         <ScrollView
-          ref={scrollViewRef}
           style={styles.messagesContainer}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.messagesContent}
+          ref={scrollViewRef}
         >
           {messages.map((message) => (
             <ChatMessage
-              key={message.id}
               message={message}
-              colors={colors}
+              colors={{
+                primary: colors.primary,
+                surface: colors.surface,
+                text: colors.text,
+                textSecondary: colors.textSecondary,
+              }}
             />
           ))}
           
