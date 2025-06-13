@@ -119,7 +119,7 @@ export default function OnboardingScreen() {
               style={[styles.input, { backgroundColor: colors.surface, color: colors.text }]}
               value={profile.height}
               onChangeText={(text) => setProfile({ ...profile, height: text })}
-              placeholder="5'8\""
+              placeholder=""
               placeholderTextColor={colors.textSecondary}
             />
           </View>
@@ -417,7 +417,3 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
 });
-      )
-    }
-  ]
-}
