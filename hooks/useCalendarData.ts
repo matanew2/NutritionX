@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { database } from '@/utils/database';
+import { getDailyData, getFoodEntries, getUserProfile } from '@/utils/database';
 import { DailyData, FoodEntry, UserProfile } from '@/utils/database';
 
 interface CalendarData {
@@ -30,8 +30,8 @@ export const useCalendarData = (selectedDate: string) => {
       const data = await Promise.all(
         dates.map(async (date) => {
           const [dailyData, foodEntries] = await Promise.all([
-            database.getDailyData(date),
-            database.getFoodEntries(date)
+            getDailyData(date),
+            getFoodEntries(date)
           ]);
 
           return {
@@ -55,7 +55,7 @@ export const useCalendarData = (selectedDate: string) => {
       };
 
       // Get user profile for calorie target
-      const userProfile = await database.getUserProfile();
+      const userProfile = await getUserProfile();
       const targetCalories = userProfile?.dailyCalorieTarget || 2000;
 
       data.forEach((day) => {
