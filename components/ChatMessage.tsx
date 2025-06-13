@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Bot, User } from 'lucide-react-native';
 
 interface Message {
@@ -20,6 +20,36 @@ interface ChatMessageProps {
 }
 
 export function ChatMessage({ message, colors }: ChatMessageProps) {
+  const formatMessage = (text: string) => {
+    // Split text into parts (text and emojis)
+    const parts = text.split(/([\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}])/gu);
+    
+    return parts.map((part, index) => {
+      // Check if the part is an emoji
+      const isEmoji = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}]/gu.test(part);
+      
+      // Check if the part is a bold text (wrapped in **)
+      const isBold = part.startsWith('**') && part.endsWith('**');
+      const boldText = isBold ? part.slice(2, -2) : part;
+
+      return (
+        <Text
+          key={index}
+          style={[
+            styles.messageText,
+            {
+              color: message.isUser ? 'white' : colors.text,
+              fontSize: isEmoji ? 24 : 16,
+              fontFamily: isBold ? 'Inter-Bold' : 'Inter-Regular',
+            },
+          ]}
+        >
+          {isBold ? boldText : part}
+        </Text>
+      );
+    });
+  };
+
   return (
     <View style={[
       styles.container,
@@ -31,22 +61,19 @@ export function ChatMessage({ message, colors }: ChatMessageProps) {
         </View>
       )}
       
-      <View style={[
-        styles.bubble,
-        {
-          backgroundColor: message.isUser ? colors.primary : colors.surface,
-          marginLeft: message.isUser ? 40 : 12,
-          marginRight: message.isUser ? 0 : 40,
-        },
-      ]}>
-        <Text style={[
-          styles.messageText,
+      <Pressable
+        style={[
+          styles.bubble,
           {
-            color: message.isUser ? 'white' : colors.text,
+            backgroundColor: message.isUser ? colors.primary : colors.surface,
+            marginLeft: message.isUser ? 40 : 12,
+            marginRight: message.isUser ? 0 : 40,
           },
-        ]}>
-          {message.text}
-        </Text>
+        ]}
+      >
+        <View style={styles.messageContent}>
+          {formatMessage(message.text)}
+        </View>
         <Text style={[
           styles.timestamp,
           {
@@ -58,7 +85,7 @@ export function ChatMessage({ message, colors }: ChatMessageProps) {
             minute: '2-digit' 
           })}
         </Text>
-      </View>
+      </Pressable>
       
       {message.isUser && (
         <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
@@ -94,9 +121,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 18,
   },
+  messageContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
   messageText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
     lineHeight: 22,
   },
   timestamp: {

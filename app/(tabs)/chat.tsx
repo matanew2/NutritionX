@@ -9,9 +9,10 @@ import {
   useColorScheme,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Send, Bot, User } from 'lucide-react-native';
+import { Send, Bot, User, Smile } from 'lucide-react-native';
 import { ChatMessage } from '@/components/ChatMessage';
 import { SuggestedQuestions } from '@/components/SuggestedQuestions';
 
@@ -44,6 +45,13 @@ interface Colors {
 
 const GROQ_API_KEY = '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';
 
+const EMOJI_CATEGORIES = {
+  '😊': ['😊', '😄', '😃', '😀', '😁', '😆', '😅', '😂', '🤣', '😊'],
+  '🍎': ['🍎', '🥗', '🥑', '🥦', '🥕', '🥬', '🥒', '🥝', '🍇', '🍓'],
+  '💪': ['💪', '🏃', '🏋️', '🧘', '🚶', '🏃‍♀️', '🏋️‍♀️', '🧘‍♀️', '🚶‍♀️', '💪'],
+  '🎯': ['🎯', '⭐', '🌟', '✨', '💫', '🔥', '💯', '✅', '🎉', '🏆'],
+};
+
 export default function ChatScreen() {
   const colorScheme = useColorScheme();
   const [messages, setMessages] = useState<Message[]>([
@@ -57,6 +65,8 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedEmojiCategory, setSelectedEmojiCategory] = useState('😊');
 
   const colors: Colors = {
     background: colorScheme === 'dark' ? '#000000' : '#FFFFFF',
@@ -146,6 +156,10 @@ export default function ChatScreen() {
     setInputText(question);
   };
 
+  const insertEmoji = (emoji: string) => {
+    setInputText(prev => prev + emoji);
+  };
+
   useEffect(() => {
     scrollViewRef.current?.scrollToEnd({ animated: true });
   }, [messages]);
@@ -212,22 +226,63 @@ export default function ChatScreen() {
 
         {/* Input */}
         <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-          <TextInput
-            style={[styles.textInput, { backgroundColor: colors.inputBackground, color: colors.text }]}
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder="Ask about nutrition, meals, or health goals..."
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            maxLength={500}
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, { backgroundColor: colors.primary }]}
-            onPress={sendMessage}
-            disabled={!inputText.trim()}
-          >
-            <Send size={20} color="white" />
-          </TouchableOpacity>
+          <View style={styles.inputWrapper}>
+            <TouchableOpacity
+              style={[styles.emojiButton, { backgroundColor: colors.inputBackground }]}
+              onPress={() => setShowEmojiPicker(!showEmojiPicker)}
+            >
+              <Smile size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+            
+            <TextInput
+              style={[styles.textInput, { backgroundColor: colors.inputBackground, color: colors.text }]}
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="Ask about nutrition, meals, or health goals..."
+              placeholderTextColor={colors.textSecondary}
+              multiline
+              maxLength={500}
+            />
+            
+            <TouchableOpacity
+              style={[styles.sendButton, { backgroundColor: colors.primary }]}
+              onPress={sendMessage}
+              disabled={!inputText.trim()}
+            >
+              <Send size={20} color="white" />
+            </TouchableOpacity>
+          </View>
+
+          {showEmojiPicker && (
+            <View style={[styles.emojiPicker, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.emojiCategories}>
+                {Object.keys(EMOJI_CATEGORIES).map((category) => (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      styles.emojiCategory,
+                      selectedEmojiCategory === category && { backgroundColor: colors.primary }
+                    ]}
+                    onPress={() => setSelectedEmojiCategory(category)}
+                  >
+                    <Text style={styles.emojiCategoryText}>{category}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              <View style={styles.emojiGrid}>
+                {EMOJI_CATEGORIES[selectedEmojiCategory as keyof typeof EMOJI_CATEGORIES].map((emoji) => (
+                  <TouchableOpacity
+                    key={emoji}
+                    style={styles.emojiItem}
+                    onPress={() => insertEmoji(emoji)}
+                  >
+                    <Text style={styles.emojiText}>{emoji}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -297,12 +352,26 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderTopWidth: 1,
   },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  emojiButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
   textInput: {
     flex: 1,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginRight: 12,
+    marginRight: 8,
     maxHeight: 100,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
@@ -313,5 +382,38 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  emojiPicker: {
+    borderTopWidth: 1,
+    padding: 12,
+  },
+  emojiCategories: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  emojiCategory: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  emojiCategoryText: {
+    fontSize: 20,
+  },
+  emojiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+  },
+  emojiItem: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emojiText: {
+    fontSize: 24,
   },
 });
