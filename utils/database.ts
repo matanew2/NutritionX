@@ -1,8 +1,8 @@
-import * as SQLite from 'expo-sqlite';
+import { openDatabase } from 'expo-sqlite';
 import { Platform } from 'react-native';
 
 // Open the database
-const db = SQLite.openDatabase('nutrition.db');
+const db = openDatabase('nutrition.db');
 
 // Initialize database tables
 export const initDatabase = async () => {
