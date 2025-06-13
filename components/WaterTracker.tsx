@@ -1,38 +1,51 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useColorScheme } from 'react-native';
 import { Droplets, Plus, Minus } from 'lucide-react-native';
+import { getDailyData, saveDailyData } from '@/utils/storage';
 
 interface WaterTrackerProps {
-  consumed: number;
-  target: number;
-  onUpdate: (newValue: number) => void;
+  date: string;
+  onDataChange: () => Promise<void>;
 }
 
-export function WaterTracker({ consumed, target, onUpdate }: WaterTrackerProps) {
-  const colorScheme = useColorScheme();
-  
-  const colors = {
-    surface: colorScheme === 'dark' ? '#1F1F1F' : '#F8F9FA',
-    text: colorScheme === 'dark' ? '#FFFFFF' : '#000000',
-    textSecondary: colorScheme === 'dark' ? '#9CA3AF' : '#6B7280',
-    primary: '#4F46E5',
-    water: '#06B6D4',
-    border: colorScheme === 'dark' ? '#374151' : '#E5E7EB',
+export const WaterTracker: React.FC<WaterTrackerProps> = ({ date, onDataChange }) => {
+  const { colors } = useColorScheme();
+  const [glasses, setGlasses] = React.useState(0);
+
+  React.useEffect(() => {
+    loadWaterData();
+  }, [date]);
+
+  const loadWaterData = async () => {
+    const data = await getDailyData(date);
+    setGlasses(data?.waterGlasses || 0);
   };
 
-  const progress = Math.min(consumed / target, 1);
+  const handleAddGlass = async () => {
+    const newGlasses = glasses + 1;
+    setGlasses(newGlasses);
+    const data = await getDailyData(date);
+    await saveDailyData(date, {
+      ...data,
+      waterGlasses: newGlasses,
+    });
+    onDataChange();
+  };
 
-  const handleIncrement = () => {
-    if (consumed < target + 4) {
-      onUpdate(consumed + 1);
+  const handleRemoveGlass = async () => {
+    if (glasses > 0) {
+      const newGlasses = glasses - 1;
+      setGlasses(newGlasses);
+      const data = await getDailyData(date);
+      await saveDailyData(date, {
+        ...data,
+        waterGlasses: newGlasses,
+      });
+      onDataChange();
     }
   };
 
-  const handleDecrement = () => {
-    if (consumed > 0) {
-      onUpdate(consumed - 1);
-    }
-  };
+  const progress = Math.min(glasses / target, 1);
 
   return (
     <View style={styles.section}>
@@ -52,19 +65,19 @@ export function WaterTracker({ consumed, target, onUpdate }: WaterTrackerProps) 
           <View style={styles.controls}>
             <TouchableOpacity
               style={[styles.controlButton, { backgroundColor: colors.border }]}
-              onPress={handleDecrement}
-              disabled={consumed === 0}
+              onPress={handleRemoveGlass}
+              disabled={glasses === 0}
             >
               <Minus size={16} color={colors.text} />
             </TouchableOpacity>
             
             <Text style={[styles.count, { color: colors.text }]}>
-              {consumed}/{target}
+              {glasses}/{target}
             </Text>
             
             <TouchableOpacity
               style={[styles.controlButton, { backgroundColor: colors.water }]}
-              onPress={handleIncrement}
+              onPress={handleAddGlass}
             >
               <Plus size={16} color="white" />
             </TouchableOpacity>
@@ -78,7 +91,7 @@ export function WaterTracker({ consumed, target, onUpdate }: WaterTrackerProps) 
               style={[
                 styles.glass,
                 {
-                  backgroundColor: index < consumed ? colors.water : colors.border,
+                  backgroundColor: index < glasses ? colors.water : colors.border,
                 },
               ]}
             />
@@ -86,14 +99,14 @@ export function WaterTracker({ consumed, target, onUpdate }: WaterTrackerProps) 
         </View>
         
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {consumed === target
+          {glasses === target
             ? '🎉 Great job! You\'ve reached your daily goal!'
-            : `${target - consumed} more glasses to reach your goal`}
+            : `${target - glasses} more glasses to reach your goal`}
         </Text>
       </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   section: {

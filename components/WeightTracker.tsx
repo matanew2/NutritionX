@@ -1,27 +1,42 @@
 import React from 'react';
-import { View, Text, StyleSheet, useColorScheme, Dimensions } from 'react-native';
+import { View, Text, TextInput, StyleSheet, useColorScheme, Dimensions } from 'react-native';
 import { VictoryLine, VictoryChart, VictoryTheme, VictoryAxis } from 'victory-native';
 import { TrendingDown } from 'lucide-react-native';
+import { useColorScheme as useColorSchemeHook } from '@/hooks/useColorScheme';
+import { getDailyData, saveDailyData } from '@/utils/storage';
 
 const { width } = Dimensions.get('window');
 
 interface WeightTrackerProps {
-  period: 'week' | 'month' | 'year';
+  date: string;
+  onDataChange: () => Promise<void>;
 }
 
-export function WeightTracker({ period }: WeightTrackerProps) {
-  const colorScheme = useColorScheme();
-  
-  const colors = {
-    surface: colorScheme === 'dark' ? '#1F1F1F' : '#F8F9FA',
-    text: colorScheme === 'dark' ? '#FFFFFF' : '#000000',
-    textSecondary: colorScheme === 'dark' ? '#9CA3AF' : '#6B7280',
-    primary: '#4F46E5',
-    success: '#10B981',
+export const WeightTracker: React.FC<WeightTrackerProps> = ({ date, onDataChange }) => {
+  const { colors } = useColorSchemeHook();
+  const [weight, setWeight] = React.useState('');
+
+  React.useEffect(() => {
+    loadWeightData();
+  }, [date]);
+
+  const loadWeightData = async () => {
+    const data = await getDailyData(date);
+    setWeight(data?.weight?.toString() || '');
+  };
+
+  const handleWeightChange = async (text: string) => {
+    setWeight(text);
+    const data = await getDailyData(date);
+    await saveDailyData(date, {
+      ...data,
+      weight: parseFloat(text) || undefined,
+    });
+    onDataChange();
   };
 
   const getWeightData = () => {
-    switch (period) {
+    switch (date) {
       case 'week':
         return {
           labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -155,7 +170,7 @@ export function WeightTracker({ period }: WeightTrackerProps) {
       </View>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   section: {

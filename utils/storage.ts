@@ -3,16 +3,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export interface UserProfile {
   name: string;
   age: number;
-  height: string;
-  currentWeight: number;
-  goalWeight: number;
-  activityLevel: 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
-  goal: 'lose_weight' | 'maintain' | 'gain_muscle';
+  gender: string;
+  height: number;
+  weight: number;
+  activityLevel: string;
+  goal: string;
   dailyCalorieTarget: number;
-  proteinTarget: number;
-  carbsTarget: number;
-  fatTarget: number;
-  waterTarget: number;
+  dailyProteinTarget: number;
+  dailyCarbsTarget: number;
+  dailyFatTarget: number;
 }
 
 export interface FoodEntry {
@@ -28,8 +27,7 @@ export interface FoodEntry {
 }
 
 export interface DailyData {
-  date: string;
-  foods: FoodEntry[];
+  foods: any[];
   waterGlasses: number;
   weight?: number;
   notes?: string;
@@ -46,8 +44,8 @@ export interface Achievement {
 }
 
 const STORAGE_KEYS = {
-  USER_PROFILE: 'user_profile',
-  DAILY_DATA: 'daily_data_',
+  USER_PROFILE: 'userProfile',
+  DAILY_DATA: 'dailyData',
   ACHIEVEMENTS: 'achievements',
   STREAK_DATA: 'streak_data',
 };
@@ -63,8 +61,8 @@ export const saveUserProfile = async (profile: UserProfile): Promise<void> => {
 
 export const getUserProfile = async (): Promise<UserProfile | null> => {
   try {
-    const data = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
-    return data ? JSON.parse(data) : null;
+    const profile = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+    return profile ? JSON.parse(profile) : null;
   } catch (error) {
     console.error('Error getting user profile:', error);
     return null;
@@ -74,7 +72,8 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
 // Daily Data
 export const saveDailyData = async (date: string, data: DailyData): Promise<void> => {
   try {
-    await AsyncStorage.setItem(STORAGE_KEYS.DAILY_DATA + date, JSON.stringify(data));
+    const key = `${STORAGE_KEYS.DAILY_DATA}_${date}`;
+    await AsyncStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
     console.error('Error saving daily data:', error);
   }
@@ -82,7 +81,8 @@ export const saveDailyData = async (date: string, data: DailyData): Promise<void
 
 export const getDailyData = async (date: string): Promise<DailyData | null> => {
   try {
-    const data = await AsyncStorage.getItem(STORAGE_KEYS.DAILY_DATA + date);
+    const key = `${STORAGE_KEYS.DAILY_DATA}_${date}`;
+    const data = await AsyncStorage.getItem(key);
     return data ? JSON.parse(data) : null;
   } catch (error) {
     console.error('Error getting daily data:', error);
@@ -200,21 +200,25 @@ export const updateStreak = async (): Promise<number> => {
 
 // Helper Functions
 export const getDateRange = (days: number): string[] => {
-  const dates = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+  const dates: string[] = [];
+  const today = new Date();
+  
+  for (let i = 0; i < days; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
     dates.push(date.toISOString().split('T')[0]);
   }
+  
   return dates;
 };
 
-export const calculateDailyTotals = (foods: FoodEntry[]) => {
+export const calculateDailyTotals = (foods: any[]) => {
   return foods.reduce(
     (totals, food) => ({
-      calories: totals.calories + food.calories,
-      protein: totals.protein + food.protein,
-      carbs: totals.carbs + food.carbs,
-      fat: totals.fat + food.fat,
+      calories: totals.calories + (food.calories || 0),
+      protein: totals.protein + (food.protein || 0),
+      carbs: totals.carbs + (food.carbs || 0),
+      fat: totals.fat + (food.fat || 0),
     }),
     { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
@@ -258,7 +262,9 @@ const getDefaultAchievements = (): Achievement[] => [
 // Clear all data (for testing)
 export const clearAllData = async (): Promise<void> => {
   try {
-    await AsyncStorage.clear();
+    const keys = await AsyncStorage.getAllKeys();
+    const dataKeys = keys.filter(key => key.startsWith(STORAGE_KEYS.DAILY_DATA));
+    await AsyncStorage.multiRemove([...dataKeys, STORAGE_KEYS.USER_PROFILE]);
   } catch (error) {
     console.error('Error clearing data:', error);
   }

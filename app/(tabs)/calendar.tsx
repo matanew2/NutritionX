@@ -5,7 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
@@ -13,31 +13,23 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { DayMealSummary } from '@/components/DayMealSummary';
 import { NutrientChart } from '@/components/NutrientChart';
+import { useCalendarData } from '@/hooks/useCalendarData';
+import { MealSummary } from '@/components/MealSummary';
+import { WaterTracker } from '@/components/WaterTracker';
+import { WeightTracker } from '@/components/WeightTracker';
+import { NotesSection } from '@/components/NotesSection';
+import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function CalendarScreen() {
-  const colorScheme = useColorScheme();
+  const { colors } = useColorScheme();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const { markedDates, loading, getDayData, refreshData } = useCalendarData(selectedDate);
   
-  const colors = {
-    background: colorScheme === 'dark' ? '#000000' : '#FFFFFF',
-    surface: colorScheme === 'dark' ? '#1F1F1F' : '#F8F9FA',
-    text: colorScheme === 'dark' ? '#FFFFFF' : '#000000',
-    textSecondary: colorScheme === 'dark' ? '#9CA3AF' : '#6B7280',
-    primary: '#4F46E5',
-    border: colorScheme === 'dark' ? '#374151' : '#E5E7EB',
+  const handleDayPress = (day: { dateString: string }) => {
+    setSelectedDate(day.dateString);
   };
 
-  // Mock data for calendar marking
-  const markedDates = {
-    [selectedDate]: {
-      selected: true,
-      selectedColor: colors.primary,
-    },
-    '2024-01-15': { marked: true, dotColor: '#10B981' },
-    '2024-01-16': { marked: true, dotColor: '#10B981' },
-    '2024-01-17': { marked: true, dotColor: '#F59E0B' },
-    '2024-01-18': { marked: true, dotColor: '#10B981' },
-  };
+  const dayData = getDayData(selectedDate);
 
   const calendarTheme = {
     backgroundColor: colors.surface,
@@ -81,7 +73,7 @@ export default function CalendarScreen() {
         <View style={[styles.calendarContainer, { backgroundColor: colors.surface }]}>
           <Calendar
             current={selectedDate}
-            onDayPress={(day) => setSelectedDate(day.dateString)}
+            onDayPress={handleDayPress}
             markedDates={markedDates}
             theme={calendarTheme}
             renderArrow={(direction) => (
@@ -143,6 +135,17 @@ export default function CalendarScreen() {
             </View>
           </View>
         </View>
+
+        {loading ? (
+          <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+        ) : (
+          <View style={styles.content}>
+            <MealSummary date={selectedDate} onDataChange={refreshData} />
+            <WaterTracker date={selectedDate} onDataChange={refreshData} />
+            <WeightTracker date={selectedDate} onDataChange={refreshData} />
+            <NotesSection date={selectedDate} onDataChange={refreshData} />
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -213,5 +216,11 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 12,
     fontFamily: 'Inter-Regular',
+  },
+  loader: {
+    marginTop: 20,
+  },
+  content: {
+    padding: 16,
   },
 });
