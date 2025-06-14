@@ -1,14 +1,4 @@
-import { database, UserProfile, FoodEntry, DailyData } from './database';
-
-export interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  unlockedAt?: string;
-  progress: number;
-  target: number;
-}
+import { database, UserProfile, FoodEntry, DailyData, Achievement } from './database';
 
 const STORAGE_KEYS = {
   USER_PROFILE: 'userProfile',
@@ -41,26 +31,18 @@ export const getDailyData = async (date: string): Promise<DailyData | null> => {
 // Food Entries
 export const addFoodEntry = async (date: string, food: FoodEntry): Promise<void> => {
   try {
-    const dailyData = await getDailyData(date) || {
+    await database.saveFoodEntry({
+      ...food,
       date,
-      foods: [],
-      waterGlasses: 0,
-    };
-    
-    dailyData.foods.push(food);
-    await saveDailyData(date, dailyData);
+    });
   } catch (error) {
     console.error('Error adding food entry:', error);
   }
 };
 
-export const removeFoodEntry = async (date: string, foodId: string): Promise<void> => {
+export const removeFoodEntry = async (date: string, foodId: number): Promise<void> => {
   try {
-    const dailyData = await getDailyData(date);
-    if (dailyData) {
-      dailyData.foods = dailyData.foods.filter(food => food.id !== foodId);
-      await saveDailyData(date, dailyData);
-    }
+    await database.deleteFoodEntry(foodId);
   } catch (error) {
     console.error('Error removing food entry:', error);
   }
@@ -71,7 +53,6 @@ export const updateWaterIntake = async (date: string, glasses: number): Promise<
   try {
     const dailyData = await getDailyData(date) || {
       date,
-      foods: [],
       waterGlasses: 0,
     };
     
@@ -87,7 +68,6 @@ export const addWeightEntry = async (date: string, weight: number): Promise<void
   try {
     const dailyData = await getDailyData(date) || {
       date,
-      foods: [],
       waterGlasses: 0,
     };
     
@@ -109,7 +89,8 @@ export const saveAchievements = async (achievements: Achievement[]): Promise<voi
 
 export const getAchievements = async (): Promise<Achievement[]> => {
   try {
-    return await database.getAchievements();
+    const achievements = await database.getAchievements();
+    return achievements.length > 0 ? achievements : getDefaultAchievements();
   } catch (error) {
     console.error('Error getting achievements:', error);
     return getDefaultAchievements();
@@ -123,22 +104,32 @@ export const updateStreak = async (): Promise<number> => {
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
     const streakData = await database.getStreakData();
-    const currentStreak = streakData ? streakData : { count: 0, lastDate: null };
+    const currentStreak = streakData ? streakData : { 
+      currentStreak: 0, 
+      longestStreak: 0, 
+      lastLogDate: null, 
+      totalDaysLogged: 0 
+    };
     
-    const todayData = await getDailyData(today);
-    const hasLoggedToday = todayData && todayData.foods.length > 0;
+    const todayFoodEntries = await database.getFoodEntries(today);
+    const hasLoggedToday = todayFoodEntries && todayFoodEntries.length > 0;
     
     if (hasLoggedToday) {
-      if (currentStreak.lastDate === yesterday) {
-        currentStreak.count += 1;
-      } else if (currentStreak.lastDate !== today) {
-        currentStreak.count = 1;
+      if (currentStreak.lastLogDate === yesterday) {
+        currentStreak.currentStreak += 1;
+      } else if (currentStreak.lastLogDate !== today) {
+        currentStreak.currentStreak = 1;
       }
-      currentStreak.lastDate = today;
+      currentStreak.lastLogDate = today;
+      currentStreak.totalDaysLogged += 1;
+      
+      if (currentStreak.currentStreak > currentStreak.longestStreak) {
+        currentStreak.longestStreak = currentStreak.currentStreak;
+      }
     }
     
     await database.saveStreakData(currentStreak);
-    return currentStreak.count;
+    return currentStreak.currentStreak;
   } catch (error) {
     console.error('Error updating streak:', error);
     return 0;
@@ -210,3 +201,6 @@ const getDefaultAchievements = (): Achievement[] => [
 export const clearAllData = async (): Promise<void> => {
   await database.clearAllData();
 };
+
+// Export types for convenience
+export type { Achievement, UserProfile, FoodEntry, DailyData };

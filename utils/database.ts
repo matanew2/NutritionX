@@ -36,7 +36,7 @@ class DatabaseService {
 
   private async initIndexedDB() {
     return new Promise<void>((resolve) => {
-      const request = indexedDB.open('nutrition.db', 1);
+      const request = indexedDB.open('nutrition.db', 2);
       
       request.onerror = () => {
         console.error('Error opening IndexedDB');
@@ -66,6 +66,10 @@ class DatabaseService {
 
         if (!db.objectStoreNames.contains('streak_data')) {
           const streakStore = db.createObjectStore('streak_data', { keyPath: 'id' });
+        }
+
+        if (!db.objectStoreNames.contains('achievements')) {
+          const achievementsStore = db.createObjectStore('achievements', { keyPath: 'id' });
         }
       };
     });
@@ -126,6 +130,18 @@ class DatabaseService {
             totalDaysLogged INTEGER DEFAULT 0
           )`
         );
+
+        tx.executeSql(
+          `CREATE TABLE IF NOT EXISTS achievements (
+            id TEXT PRIMARY KEY,
+            title TEXT,
+            description TEXT,
+            icon TEXT,
+            unlockedAt TEXT,
+            progress INTEGER,
+            target INTEGER
+          )`
+        );
       }, 
       (error) => {
         console.error('Error initializing database:', error);
@@ -140,7 +156,7 @@ class DatabaseService {
 
   private async openIndexedDB() {
     return new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open('nutrition.db', 1);
+      const request = indexedDB.open('nutrition.db', 2);
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result);
     });
@@ -523,13 +539,124 @@ class DatabaseService {
     }
   }
 
+  async saveAchievements(achievements: Achievement[]) {
+    await this.ensureInitialized();
+    
+    if (Platform.OS === 'web') {
+      const db = await this.openIndexedDB();
+      return new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction(['achievements'], 'readwrite');
+        const store = transaction.objectStore('achievements');
+        
+        // Clear existing achievements first
+        const clearRequest = store.clear();
+        clearRequest.onsuccess = () => {
+          // Add all achievements
+          let completed = 0;
+          const total = achievements.length;
+          
+          if (total === 0) {
+            resolve();
+            return;
+          }
+          
+          achievements.forEach(achievement => {
+            const addRequest = store.put(achievement);
+            addRequest.onsuccess = () => {
+              completed++;
+              if (completed === total) {
+                resolve();
+              }
+            };
+            addRequest.onerror = () => reject(addRequest.error);
+          });
+        };
+        clearRequest.onerror = () => reject(clearRequest.error);
+      });
+    } else {
+      const db = SQLite.openDatabase('nutrition.db');
+      return new Promise<void>((resolve, reject) => {
+        db.transaction(tx => {
+          // Clear existing achievements first
+          tx.executeSql('DELETE FROM achievements');
+          
+          // Insert all achievements
+          achievements.forEach(achievement => {
+            tx.executeSql(
+              `INSERT INTO achievements (
+                id, title, description, icon, unlockedAt, progress, target
+              ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [
+                achievement.id,
+                achievement.title,
+                achievement.description,
+                achievement.icon,
+                achievement.unlockedAt || null,
+                achievement.progress,
+                achievement.target
+              ]
+            );
+          });
+        }, 
+        (error) => {
+          console.error('Error saving achievements:', error);
+          reject(error);
+        },
+        () => {
+          resolve();
+        });
+      });
+    }
+  }
+
+  async getAchievements(): Promise<Achievement[]> {
+    await this.ensureInitialized();
+    
+    if (Platform.OS === 'web') {
+      const db = await this.openIndexedDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['achievements'], 'readonly');
+        const store = transaction.objectStore('achievements');
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+          const achievements = request.result as Achievement[];
+          resolve(achievements);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    } else {
+      const db = SQLite.openDatabase('nutrition.db');
+      return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+          tx.executeSql(
+            'SELECT * FROM achievements',
+            [],
+            (_, { rows }) => {
+              const achievements: Achievement[] = [];
+              for (let i = 0; i < rows.length; i++) {
+                achievements.push(rows.item(i) as Achievement);
+              }
+              resolve(achievements);
+            },
+            (_, error) => {
+              console.error('Error getting achievements:', error);
+              reject(error);
+              return false;
+            }
+          );
+        });
+      });
+    }
+  }
+
   async clearAllData() {
     await this.ensureInitialized();
     
     if (Platform.OS === 'web') {
       const db = await this.openIndexedDB();
       return new Promise<void>((resolve, reject) => {
-        const transaction = db.transaction(['user_profile', 'food_entries', 'daily_data', 'streak_data'], 'readwrite');
+        const transaction = db.transaction(['user_profile', 'food_entries', 'daily_data', 'streak_data', 'achievements'], 'readwrite');
         
         const clearStore = (storeName: string) => {
           const store = transaction.objectStore(storeName);
@@ -540,6 +667,7 @@ class DatabaseService {
         clearStore('food_entries');
         clearStore('daily_data');
         clearStore('streak_data');
+        clearStore('achievements');
 
         transaction.oncomplete = () => resolve();
         transaction.onerror = () => reject(transaction.error);
@@ -552,6 +680,7 @@ class DatabaseService {
           tx.executeSql('DELETE FROM food_entries');
           tx.executeSql('DELETE FROM daily_data');
           tx.executeSql('DELETE FROM streak_data');
+          tx.executeSql('DELETE FROM achievements');
         }, 
         (error) => {
           console.error('Error clearing all data:', error);
@@ -600,6 +729,7 @@ export interface DailyData {
   waterGlasses: number;
   weight?: number;
   notes?: string;
+  foods?: FoodEntry[];
 }
 
 export interface StreakData {
@@ -608,6 +738,16 @@ export interface StreakData {
   longestStreak: number;
   lastLogDate?: string;
   totalDaysLogged: number;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlockedAt?: string;
+  progress: number;
+  target: number;
 }
 
 // Export a singleton instance
