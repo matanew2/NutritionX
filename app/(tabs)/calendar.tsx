@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar } from 'react-native-calendars';
@@ -96,6 +97,14 @@ export default function CalendarScreen() {
     textDayHeaderFontSize: 14,
   };
 
+  // Platform-specific props for SafeAreaView
+  const safeAreaProps = Platform.select({
+    web: {
+      accessibilityHint: undefined,
+    },
+    default: {},
+  });
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -113,7 +122,10 @@ export default function CalendarScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      {...safeAreaProps}
+    >
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
