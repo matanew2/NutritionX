@@ -63,6 +63,10 @@ class DatabaseService {
         if (!db.objectStoreNames.contains('daily_data')) {
           const dailyStore = db.createObjectStore('daily_data', { keyPath: 'date' });
         }
+
+        if (!db.objectStoreNames.contains('streak_data')) {
+          const streakStore = db.createObjectStore('streak_data', { keyPath: 'id' });
+        }
       };
     });
   }
@@ -110,6 +114,16 @@ class DatabaseService {
             waterGlasses INTEGER DEFAULT 0,
             weight REAL,
             notes TEXT
+          )`
+        );
+
+        tx.executeSql(
+          `CREATE TABLE IF NOT EXISTS streak_data (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            currentStreak INTEGER DEFAULT 0,
+            longestStreak INTEGER DEFAULT 0,
+            lastLogDate TEXT,
+            totalDaysLogged INTEGER DEFAULT 0
           )`
         );
       }, 
@@ -427,6 +441,128 @@ class DatabaseService {
       });
     }
   }
+
+  async getStreakData(): Promise<StreakData | null> {
+    await this.ensureInitialized();
+    
+    if (Platform.OS === 'web') {
+      const db = await this.openIndexedDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['streak_data'], 'readonly');
+        const store = transaction.objectStore('streak_data');
+        const request = store.get(1);
+
+        request.onsuccess = () => {
+          const data = request.result;
+          resolve(data ? data as StreakData : null);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    } else {
+      const db = SQLite.openDatabase('nutrition.db');
+      return new Promise((resolve, reject) => {
+        db.transaction(tx => {
+          tx.executeSql(
+            'SELECT * FROM streak_data WHERE id = 1',
+            [],
+            (_, { rows }) => {
+              if (rows.length > 0) {
+                resolve(rows.item(0) as StreakData);
+              } else {
+                resolve(null);
+              }
+            },
+            (_, error) => {
+              console.error('Error getting streak data:', error);
+              reject(error);
+              return false;
+            }
+          );
+        });
+      });
+    }
+  }
+
+  async saveStreakData(data: StreakData) {
+    await this.ensureInitialized();
+    
+    if (Platform.OS === 'web') {
+      const db = await this.openIndexedDB();
+      return new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction(['streak_data'], 'readwrite');
+        const store = transaction.objectStore('streak_data');
+        const request = store.put({ ...data, id: 1 });
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } else {
+      const db = SQLite.openDatabase('nutrition.db');
+      return new Promise<void>((resolve, reject) => {
+        db.transaction(tx => {
+          tx.executeSql(
+            `INSERT OR REPLACE INTO streak_data (
+              id, currentStreak, longestStreak, lastLogDate, totalDaysLogged
+            ) VALUES (1, ?, ?, ?, ?)`,
+            [
+              data.currentStreak,
+              data.longestStreak,
+              data.lastLogDate,
+              data.totalDaysLogged
+            ]
+          );
+        }, 
+        (error) => {
+          console.error('Error saving streak data:', error);
+          reject(error);
+        },
+        () => {
+          resolve();
+        });
+      });
+    }
+  }
+
+  async clearAllData() {
+    await this.ensureInitialized();
+    
+    if (Platform.OS === 'web') {
+      const db = await this.openIndexedDB();
+      return new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction(['user_profile', 'food_entries', 'daily_data', 'streak_data'], 'readwrite');
+        
+        const clearStore = (storeName: string) => {
+          const store = transaction.objectStore(storeName);
+          store.clear();
+        };
+
+        clearStore('user_profile');
+        clearStore('food_entries');
+        clearStore('daily_data');
+        clearStore('streak_data');
+
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+      });
+    } else {
+      const db = SQLite.openDatabase('nutrition.db');
+      return new Promise<void>((resolve, reject) => {
+        db.transaction(tx => {
+          tx.executeSql('DELETE FROM user_profile');
+          tx.executeSql('DELETE FROM food_entries');
+          tx.executeSql('DELETE FROM daily_data');
+          tx.executeSql('DELETE FROM streak_data');
+        }, 
+        (error) => {
+          console.error('Error clearing all data:', error);
+          reject(error);
+        },
+        () => {
+          resolve();
+        });
+      });
+    }
+  }
 }
 
 // Types
@@ -466,5 +602,13 @@ export interface DailyData {
   notes?: string;
 }
 
+export interface StreakData {
+  id?: number;
+  currentStreak: number;
+  longestStreak: number;
+  lastLogDate?: string;
+  totalDaysLogged: number;
+}
+
 // Export a singleton instance
-export const database = DatabaseService.getInstance(); 
+export const database = DatabaseService.getInstance();

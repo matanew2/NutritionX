@@ -9,7 +9,7 @@ interface FunCalorieRingProps {
 
 export function FunCalorieRing({ consumed, target }: FunCalorieRingProps) {
   const colorScheme = useColorScheme();
-  const progress = Math.min(consumed / target, 1);
+  const progress = target > 0 ? Math.min(consumed / target, 1) : 0;
   const remaining = Math.max(target - consumed, 0);
   
   const colors = {
